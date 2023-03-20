@@ -1,0 +1,17 @@
+{
+  "name": "problema2generaiscompdistribuida",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node ./index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Hugo Brandão",
+  "license": "ISC",
+  "dependencies": {
+    "concurrently": "^7.6.0",
+    "ws": "^8.13.0"
+  }
+}
