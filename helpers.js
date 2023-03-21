@@ -7,7 +7,5 @@ export const messageTypes = {
     }
 };
 
-export const NUMBER_OF_ACKS = 5;
-
 export const get30PercentRandom = () => Math.random() < 0.3;
 export const get80PercentRandom = () => Math.random() < 0.8;

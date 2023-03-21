@@ -1,10 +1,11 @@
 import { WebSocket } from 'ws';
-import { NUMBER_OF_ACKS, get30PercentRandom, messageTypes } from './helpers.js';
+import { get30PercentRandom, messageTypes } from './helpers.js';
 
 const clientStates = {
     SENDING_DATE: 'sendingdate',
     WAITING_ACK: 'waitingack',
-    WAITING_ACK2: 'waitingack2'
+    WAITING_ACK2: 'waitingack2',
+    ATTACKING: 'attacking'
 };
 
 const clientTimeouts = {
@@ -14,12 +15,14 @@ const clientTimeouts = {
 };
 
 class GeneralClient {
-    constructor(serverPort) {
+    constructor(serverPort, { onAttack }) {
         this.soldiers = 100;
         this.ws = new WebSocket(`ws://localhost:${serverPort}`);
         this.state = clientStates.SENDING_DATE;
         this.timerHandle = 0;
         this.receivedAcks = 0;
+        this.otoTimer = 0;
+        this.onAttack = onAttack;
 
         this.#init();
     }
@@ -32,7 +35,7 @@ class GeneralClient {
         [clientStates.WAITING_ACK2]: () => {
             this.sendSoldier(messageTypes.Ack);
             this.setState(clientStates.WAITING_ACK2);
-        }
+        },
     }
 
     handleTimeout() {
@@ -53,16 +56,22 @@ class GeneralClient {
         [clientStates.WAITING_ACK2]: (received) => {
             if (received.message === messageTypes.Ack.message) {
                 this.receivedAcks++;
+                console.log(`New number of acks: ${this.receivedAcks}`);
 
-                if (this.receivedAcks >= NUMBER_OF_ACKS) {
-                    console.log(`Client attacked with ${this.soldiers} soldiers.`);
-                    this.close();
-                } else {
-                    this.sendSoldier(messageTypes.Ack);
-                    this.setState(clientStates.WAITING_ACK2);
+                if (this.receivedAcks >= 2) {
+                    if (!this.otoTimer) {
+                        this.otoTimer = setTimeout((() => {
+                            console.log(`Client attacked with ${this.soldiers} soldiers.`);
+                            this.close();
+                            this.onAttack(this.soldiers);
+                        }).bind(this), 10000);   
+                    }
                 }
+                
+                this.sendSoldier(messageTypes.Ack);
+                this.setState(clientStates.WAITING_ACK2);
             }
-        }
+        },
     }
 
     handleMessageReceived(message) {
@@ -77,8 +86,10 @@ class GeneralClient {
     }
 
     setState(state) {
-        this.state = state;
-        console.log(`Setting state to ${this.state}`);
+        if (this.state !== state) {
+            this.state = state;
+            console.log(`Setting state to ${this.state}`);
+        }
 
         const timeout = clientTimeouts[state];
         if (timeout) {
@@ -92,6 +103,7 @@ class GeneralClient {
         if (this.soldiers <= 1) {
             console.log('Cliente ficou só com o general, morreu todo mundo :(');
             this.close();
+            return;
         }
 
         const buffer = JSON.stringify(message);
@@ -100,6 +112,7 @@ class GeneralClient {
 
     close() {
         clearTimeout(this.timerHandle);
+        clearTimeout(this.otoTimer);
         this.ws.close();
     }
 
@@ -107,7 +120,6 @@ class GeneralClient {
         this.ws.on('error', console.error);
         this.ws.on('close', () => {
             console.log('Server closed the connection');
-            clearTimeout(this.timerHandle);
         });
         this.ws.on('open', () => {
             console.log(`General client started.`);
@@ -131,4 +143,4 @@ class GeneralClient {
     }
 }
 
-new GeneralClient(1337);
+new GeneralClient(1337, { onAttack: (soldiers) => process.exit(soldiers) });

@@ -19,3 +19,9 @@ Antes de executar o projeto é necessário instalar os pacotes. Execute em um te
 Para executar o projeto, na raiz do mesmo em um terminal, utilize o comando:
 
     npm run dev
+
+#
+## Protocolo
+O protocolo funciona sobre uma arquitetura cliente servidor.
+O cliente inicia a comunicação enviando uma solicitação do ataque, e o servidor respondendo com uma mensagem de ACK, a qual o cliente também responderá com um ACK. Ambos irão aguardar pelo menos 2 Acknowledgments, e então enviarão Acks constantemente durante 10 segundos sem aguardar resposta, e então atacarão.
+
